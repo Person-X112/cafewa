@@ -6,15 +6,20 @@ export interface CartItem {
   id: number;
   name: string;
   price: number;
-  quantity: number;
+  quantity?: number; // Changed to optional
   category_name?: string;
+  options?: {
+    milk?: string;
+    size?: string;
+  };
+  note?: string; // Added note
 }
 
 interface CartContextType {
-  items: CartItem[];
-  addItem: (item: Omit<CartItem, 'quantity'>) => void;
-  removeItem: (id: number) => void;
-  updateQuantity: (id: number, quantity: number) => void;
+  cart: CartItem[]; // Renamed from items
+  addItem: (item: CartItem) => void; // Changed parameter type
+  removeItem: (key: string) => void; // Changed parameter name
+  updateQuantity: (key: string, delta: number) => void; // Changed parameter name and delta
   clearCart: () => void;
   totalItems: number;
   totalPrice: number;
@@ -24,8 +29,17 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 const CART_STORAGE_KEY = 'cafe_cart';
 
+// Helper to generate a unique key for an item based on its ID and options/note
+export const getCartKey = (item: CartItem) => {
+  const optionsKey = item.options
+    ? `${item.options.milk || 'none'}-${item.options.size || 'none'}`
+    : 'no-options';
+  const noteKey = item.note ? `note-${item.note}` : 'no-note';
+  return `${item.id}-${optionsKey}-${noteKey}`;
+};
+
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   // Load from localStorage on mount
@@ -33,7 +47,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       const stored = localStorage.getItem(CART_STORAGE_KEY);
       if (stored) {
-        setItems(JSON.parse(stored));
+        setCart(JSON.parse(stored));
       }
     } catch {
       // ignore
@@ -44,46 +58,49 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Save to localStorage on change
   useEffect(() => {
     if (loaded) {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
     }
-  }, [items, loaded]);
+  }, [cart, loaded]);
 
-  const addItem = useCallback((item: Omit<CartItem, 'quantity'>) => {
-    setItems((prev) => {
-      const existing = prev.find((i) => i.id === item.id);
+  const addItem = useCallback((item: CartItem) => {
+    setCart((prev) => {
+      const itemKey = getCartKey(item);
+      const existing = prev.find((i) => getCartKey(i) === itemKey);
       if (existing) {
         return prev.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
+          getCartKey(i) === itemKey ? { ...i, quantity: (i.quantity || 1) + 1 } : i
         );
       }
       return [...prev, { ...item, quantity: 1 }];
     });
   }, []);
 
-  const removeItem = useCallback((id: number) => {
-    setItems((prev) => prev.filter((i) => i.id !== id));
+  const removeItem = useCallback((key: string) => {
+    setCart((prev) => prev.filter((i) => getCartKey(i) !== key));
   }, []);
 
-  const updateQuantity = useCallback((id: number, quantity: number) => {
-    if (quantity <= 0) {
-      setItems((prev) => prev.filter((i) => i.id !== id));
-    } else {
-      setItems((prev) =>
-        prev.map((i) => (i.id === id ? { ...i, quantity } : i))
-      );
-    }
+  const updateQuantity = useCallback((key: string, delta: number) => {
+    setCart((prev) =>
+      prev.map((i) => {
+        if (getCartKey(i) === key) {
+          const newQty = (i.quantity || 1) + delta;
+          return newQty > 0 ? { ...i, quantity: newQty } : null;
+        }
+        return i;
+      }).filter((i): i is CartItem => i !== null)
+    );
   }, []);
 
   const clearCart = useCallback(() => {
-    setItems([]);
+    setCart([]);
   }, []);
 
-  const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
-  const totalPrice = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  const totalItems = cart.reduce((sum, i) => sum + (i.quantity || 1), 0);
+  const totalPrice = cart.reduce((sum, i) => sum + i.price * (i.quantity || 1), 0);
 
   return (
     <CartContext.Provider
-      value={{ items, addItem, removeItem, updateQuantity, clearCart, totalItems, totalPrice }}
+      value={{ cart, addItem, removeItem, updateQuantity, clearCart, totalItems, totalPrice }}
     >
       {children}
     </CartContext.Provider>

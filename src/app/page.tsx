@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import CustomizationModal from "@/components/CustomizationModal";
 
 interface MenuItem {
   id: number;
@@ -12,7 +13,10 @@ interface MenuItem {
   description: string;
   price: number;
   category_name: string;
+  image_url: string;
   is_available: boolean;
+  surcharge_large: number;
+  surcharge_extra_large: number;
 }
 
 interface Category {
@@ -27,6 +31,10 @@ export default function Home() {
   const [loadingMenu, setLoadingMenu] = useState(true);
   const { addItem, totalItems } = useCart();
   const { user, loading: authLoading, logout } = useAuth();
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
 
   useEffect(() => {
     async function fetchMenu() {
@@ -49,6 +57,14 @@ export default function Home() {
   }, []);
 
   const handleAddToCart = (item: MenuItem) => {
+    // If it's a coffee item, show customization modal
+    if (item.category_name?.toLowerCase() === 'coffee') {
+      setSelectedItem(item);
+      setIsModalOpen(true);
+      return;
+    }
+
+    // Otherwise add directly
     addItem({
       id: item.id,
       name: item.name,
@@ -57,18 +73,33 @@ export default function Home() {
     });
   };
 
+  const handleConfirmCustomization = (options: { milk: string; size: string; note: string; price: number }) => {
+    if (selectedItem) {
+      addItem({
+        id: selectedItem.id,
+        name: selectedItem.name,
+        price: options.price, // Use calculated price from modal
+        category_name: selectedItem.category_name,
+        options: { milk: options.milk, size: options.size },
+        note: options.note,
+      });
+      setIsModalOpen(false);
+      setSelectedItem(null);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center p-8">
+    <div className="min-h-screen bg-background text-foreground flex flex-col items-center p-8">
       <header className="w-full max-w-4xl flex justify-between items-center mb-12">
-        <h1 className="text-4xl font-bold text-gray-800">Cafe Menu</h1>
+        <h1 className="text-4xl font-black text-foreground tracking-tight">Cafe Menu</h1>
         <div className="flex items-center gap-4">
           <Link
             href="/cart"
-            className="px-4 py-2 bg-gray-800 text-white font-medium rounded-lg hover:bg-gray-900 transition relative"
+            className="px-5 py-2.5 bg-foreground text-background font-bold rounded-xl hover:opacity-90 transition relative shadow-lg shadow-foreground/10"
           >
             Cart
             {totalItems > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+              <span className="absolute -top-2 -right-2 bg-accent text-accent-foreground text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center border-2 border-background">
                 {totalItems}
               </span>
             )}
@@ -76,25 +107,29 @@ export default function Home() {
           {authLoading ? null : user ? (
             <div className="flex items-center gap-3">
               {user.role === 'admin' && (
-                <Link href="/admin" className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm">
+                <Link href="/admin" className="px-4 py-2 bg-primary text-primary-foreground font-bold rounded-xl hover:opacity-90 transition text-sm shadow-md shadow-primary/20">
                   Admin
                 </Link>
               )}
-              <Link href="/orders" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm">
+              <Link href="/orders" className="px-4 py-2 bg-success text-white font-bold rounded-xl hover:opacity-90 transition text-sm shadow-md shadow-success/20">
                 My Orders
               </Link>
-              <span className="text-sm text-gray-600">{user.username}</span>
+              <div className="flex flex-col items-end">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none">Logged in as</span>
+                <span className="text-sm font-bold text-foreground">{user.username}</span>
+              </div>
               <button
                 onClick={logout}
-                className="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition text-sm"
+                className="p-2.5 bg-card hover:bg-input text-foreground rounded-xl border border-border transition-colors group"
+                title="Logout"
               >
-                Logout
+                <svg className="w-5 h-5 group-hover:text-destructive transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
               </button>
             </div>
           ) : (
             <Link
               href="/login"
-              className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition"
+              className="px-8 py-3 bg-primary text-primary-foreground font-bold rounded-2xl hover:opacity-90 transition shadow-xl shadow-primary/20"
             >
               Login to Order
             </Link>
@@ -102,35 +137,59 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="w-full max-w-4xl space-y-12">
+      <main className="w-full max-w-4xl space-y-16">
         {loadingMenu ? (
-          <p className="text-gray-500 text-center">Loading menu...</p>
+          <div className="flex flex-col items-center py-20 animate-pulse">
+            <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin mb-4"></div>
+            <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">Arriving shortly...</p>
+          </div>
         ) : categories.length === 0 ? (
-          <p className="text-gray-500 text-center">No menu items available.</p>
+          <div className="text-center py-20 bg-card rounded-3xl border-2 border-dashed border-border">
+            <p className="text-muted-foreground font-medium">No menu items available at the moment.</p>
+          </div>
         ) : (
           categories.map((category) => {
             const categoryItems = menuItems.filter((item) => item.category_id === category.id);
             if (categoryItems.length === 0) return null;
             return (
-              <section key={category.id} className="space-y-6">
-                <h2 className="text-2xl font-semibold text-gray-700 border-b pb-2">{category.name}</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <section key={category.id} className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-3xl font-black text-foreground tracking-tight whitespace-nowrap">{category.name}</h2>
+                  <div className="h-px w-full bg-border mt-2"></div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {categoryItems.map((item) => (
-                    <div key={item.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex justify-between items-start">
-                      <div className="flex-1">
-                        <h3 className="font-medium text-lg text-gray-800">{item.name}</h3>
-                        <p className="text-gray-500 text-sm mt-1">{item.description}</p>
-                        <span className="font-semibold text-gray-900 mt-2 inline-block">
-                          ${parseFloat(String(item.price)).toFixed(2)}
-                        </span>
+                    <div key={item.id} className="card-premium p-4 flex gap-5 group hover:border-primary transition-all duration-300">
+                      <div className="w-32 h-32 rounded-2xl overflow-hidden bg-input relative shrink-0 shadow-inner">
+                        <img 
+                          src={item.image_url || '/images/coffee.png'} 
+                          alt={item.name} 
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                        {!item.is_available && (
+                          <div className="absolute inset-0 bg-background/80 backdrop-blur-[1px] flex items-center justify-center p-2 text-center">
+                            <span className="text-[10px] font-black text-foreground uppercase tracking-tighter">Unavailable</span>
+                          </div>
+                        )}
                       </div>
-                      <button
-                        onClick={() => handleAddToCart(item)}
-                        disabled={!item.is_available}
-                        className="ml-4 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
-                      >
-                        {item.is_available ? 'Add to Cart' : 'Unavailable'}
-                      </button>
+                      <div className="flex-1 flex flex-col justify-between py-1">
+                        <div>
+                          <h3 className="font-bold text-xl text-foreground group-hover:text-primary transition-colors">{item.name}</h3>
+                          <p className="text-muted-foreground text-sm line-clamp-2 mt-1 font-medium">{item.description}</p>
+                        </div>
+                        <div className="flex justify-between items-end mt-4">
+                          <span className="text-2xl font-black text-foreground">
+                            ${Number(item.price).toFixed(2)}
+                          </span>
+                          <button
+                            onClick={() => handleAddToCart(item)}
+                            disabled={!item.is_available}
+                            className="px-5 py-2.5 bg-primary text-primary-foreground text-xs font-black rounded-xl hover:opacity-90 transition-all disabled:opacity-30 disabled:grayscale scale-95 group-hover:scale-100 active:scale-90 shadow-lg shadow-primary/20 uppercase tracking-widest"
+                          >
+                            Add to Cart
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -139,6 +198,15 @@ export default function Home() {
           })
         )}
       </main>
+
+      {selectedItem && (
+        <CustomizationModal
+          item={selectedItem}
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onConfirm={handleConfirmCustomization}
+        />
+      )}
     </div>
   );
 }

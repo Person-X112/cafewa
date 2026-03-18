@@ -12,7 +12,9 @@ export async function GET() {
     const formattedRows = rows.map((row: any) => ({
       ...row,
       id: Number(row.id),
-      category_id: Number(row.category_id)
+      category_id: Number(row.category_id),
+      surcharge_large: Number(row.surcharge_large || 0),
+      surcharge_extra_large: Number(row.surcharge_extra_large || 0)
     }));
     return NextResponse.json(formattedRows);
   } catch (error) {
@@ -23,15 +25,24 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { category_id, name, description, price, image_url, is_available } = await request.json();
+    const { category_id, name, description, price, image_url, is_available, surcharge_large, surcharge_extra_large } = await request.json();
 
     if (!category_id || !name || price === undefined) {
       return NextResponse.json({ error: 'Category ID, name, and price are required' }, { status: 400 });
     }
 
     const [result]: any = await pool.query(
-      'INSERT INTO menu_items (category_id, name, description, price, image_url, is_available) VALUES (?, ?, ?, ?, ?, ?)',
-      [category_id, name, description, price, image_url || null, is_available !== undefined ? is_available : true]
+      'INSERT INTO menu_items (category_id, name, description, price, image_url, is_available, surcharge_large, surcharge_extra_large) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        category_id, 
+        name, 
+        description, 
+        price, 
+        image_url || null, 
+        is_available !== undefined ? is_available : true,
+        surcharge_large || 0,
+        surcharge_extra_large || 0
+      ]
     );
 
     return NextResponse.json({ 
@@ -41,7 +52,9 @@ export async function POST(request: Request) {
       description, 
       price, 
       image_url, 
-      is_available 
+      is_available,
+      surcharge_large,
+      surcharge_extra_large
     }, { status: 201 });
   } catch (error) {
     console.error('Failed to create menu item:', error);

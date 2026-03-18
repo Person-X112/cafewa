@@ -89,76 +89,111 @@ export default function AdminDashboardPage() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-        <p className="text-gray-500">Loading dashboard...</p>
+      <div className="p-20 flex flex-col items-center animate-pulse">
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent animate-spin rounded-full mb-4"></div>
+          <p className="text-muted-foreground font-black uppercase tracking-widest text-[10px]">Assembling Dashboard...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold text-gray-800">Dashboard Overview</h2>
-        <p className="text-gray-500 mt-1">Welcome to the cafe administration panel.</p>
+    <div className="space-y-12 pb-32">
+      <div className="animate-in fade-in duration-700">
+        <h2 className="text-4xl font-black text-foreground tracking-tight">Intelligence Hub</h2>
+        <p className="text-muted-foreground font-black uppercase tracking-[0.2em] text-[10px] mt-2 opacity-70">Metric Overview & Command Center</p>
       </div>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-blue-50 border border-blue-100 p-6 rounded-lg">
-          <span className="text-blue-500 font-medium text-sm">Today&apos;s Orders</span>
-          <span className="text-3xl font-bold mt-2 text-blue-900 block">{stats.todayOrders}</span>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="card-premium p-8 relative overflow-hidden group border-primary/20 bg-primary/[0.02]">
+          <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] relative z-10">Today&apos;s Velocity</span>
+          <div className="flex items-baseline gap-2 mt-4 relative z-10">
+            <span className="text-5xl font-black text-foreground tracking-tighter">{stats.todayOrders}</span>
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Orders</span>
+          </div>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/3 blur-2xl group-hover:bg-primary/10 transition-colors"></div>
         </div>
-        <div className="bg-green-50 border border-green-100 p-6 rounded-lg">
-          <span className="text-green-500 font-medium text-sm">Total Revenue (Paid)</span>
-          <span className="text-3xl font-bold mt-2 text-green-900 block">${stats.totalRevenue.toFixed(2)}</span>
+        
+        <div className="card-premium p-8 relative overflow-hidden group border-success/20 bg-success/[0.02]">
+          <span className="text-[10px] font-black text-success uppercase tracking-[0.2em] relative z-10">Terminal Revenue</span>
+          <div className="flex items-baseline gap-2 mt-4 relative z-10">
+            <span className="text-5xl font-black text-foreground tracking-tighter">${Number(stats.totalRevenue).toFixed(2)}</span>
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">USD</span>
+          </div>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-success/5 rounded-full -translate-y-1/2 translate-x-1/3 blur-2xl group-hover:bg-success/10 transition-colors"></div>
         </div>
-        <div className="bg-purple-50 border border-purple-100 p-6 rounded-lg">
-          <span className="text-purple-500 font-medium text-sm">Active Menu Items</span>
-          <span className="text-3xl font-bold mt-2 text-purple-900 block">{stats.menuItemCount}</span>
+
+        <div className="card-premium p-8 relative overflow-hidden group border-accent/20 bg-accent/[0.02]">
+          <span className="text-[10px] font-black text-accent uppercase tracking-[0.2em] relative z-10">Menu Portfolio</span>
+          <div className="flex items-baseline gap-2 mt-4 relative z-10">
+            <span className="text-5xl font-black text-foreground tracking-tighter">{stats.menuItemCount}</span>
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Items</span>
+          </div>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 rounded-full -translate-y-1/2 translate-x-1/3 blur-2xl group-hover:bg-accent/10 transition-colors"></div>
         </div>
       </div>
 
       {/* Orders list */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="p-4 border-b border-gray-100">
-          <h3 className="font-semibold text-gray-800">All Orders</h3>
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
+        <div className="flex items-center justify-between border-b border-border pb-4">
+            <h3 className="text-2xl font-black text-foreground tracking-tight">Recent Activity</h3>
+            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{orders.length} TOTAL RECORDS</span>
         </div>
+
         {orders.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">No orders yet.</div>
+          <div className="p-20 text-center bg-card rounded-[2.5rem] border-2 border-dashed border-border">
+             <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">Awaiting customer interaction</p>
+          </div>
         ) : (
-          <div className="divide-y divide-gray-100">
-            {orders.map((order) => (
-              <div key={order.id} className="p-4 flex flex-col md:flex-row md:items-center gap-4">
+          <div className="grid gap-4">
+            {orders.slice(0, 5).map((order) => (
+              <div key={order.id} className="bg-card p-6 rounded-3xl border border-border hover:border-primary/30 transition-all flex flex-col md:flex-row md:items-center gap-6 shadow-sm">
+                <div className="flex items-center justify-center w-16 h-16 bg-input rounded-2xl border border-border">
+                    <span className="font-black text-foreground tracking-tighter text-xl">#{order.id}</span>
+                </div>
+                
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-gray-800">Order #{order.id}</span>
-                    <span className="text-xs text-gray-400">
-                      User #{order.user_id} &middot; {new Date(order.created_at).toLocaleString()}
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-xs font-black text-foreground uppercase tracking-widest">Client {order.user_id || 'Guest'}</span>
+                    <span className="w-1 h-1 bg-border rounded-full"></span>
+                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">
+                      {new Date(order.created_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                     </span>
                   </div>
-                  <div className="text-sm text-gray-600">
-                    {order.items.map((item) => `${item.item_name} x${item.quantity}`).join(', ')}
-                  </div>
-                  <div className="flex gap-2 mt-1">
-                    <span className={`px-2 py-0.5 text-xs rounded ${
-                      order.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                    }`}>
-                      {order.payment_status}
-                    </span>
-                    <span className="text-sm font-semibold">${parseFloat(String(order.total_amount)).toFixed(2)}</span>
+                  <div className="text-sm text-foreground font-bold line-clamp-1 opacity-80">
+                    {order.items.map((item) => `${item.item_name} ×${item.quantity}`).join(', ')}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <select
-                    value={order.status}
-                    onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                    disabled={updatingId === order.id}
-                    className="border border-gray-300 rounded px-2 py-1 text-sm text-gray-700"
-                  >
-                    {statusOptions.map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
+
+                <div className="flex items-center gap-6">
+                    <div className="flex flex-col items-end">
+                        <span className="text-xl font-black text-foreground tracking-tighter">${parseFloat(String(order.total_amount)).toFixed(2)}</span>
+                        <span className={`text-[9px] font-black uppercase tracking-widest mt-1 ${
+                        order.payment_status === 'paid' ? 'text-success' : 'text-warning'
+                        }`}>
+                        {order.payment_status}
+                        </span>
+                    </div>
+
+                    <div className="relative">
+                        <select
+                            value={order.status}
+                            onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                            disabled={updatingId === order.id}
+                            className={`text-[9px] font-black py-2 pl-3 pr-8 rounded-xl appearance-none border-2 transition-all cursor-pointer uppercase tracking-widest outline-none ${
+                                order.status === 'completed' ? 'border-success/30 bg-success/5 text-success' : 
+                                order.status === 'cancelled' ? 'border-destructive/30 bg-destructive/5 text-destructive' : 
+                                'border-border bg-input text-foreground'
+                            }`}
+                        >
+                            {statusOptions.map((s) => (
+                            <option key={s} value={s}>{s.toUpperCase()}</option>
+                            ))}
+                        </select>
+                        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
+                            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M19 9l-7 7-7-7" /></svg>
+                        </div>
+                    </div>
                 </div>
               </div>
             ))}

@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     // Check items and calculate total
     for (const item of items) {
       const [menuItemRows]: any = await connection.query(
-        'SELECT price FROM menu_items WHERE id = ? AND is_available = TRUE',
+        'SELECT price, surcharge_large, surcharge_extra_large FROM menu_items WHERE id = ? AND is_available = TRUE',
         [item.menu_item_id]
       );
 
@@ -80,13 +80,25 @@ export async function POST(request: NextRequest) {
         throw new Error(`Menu item ${item.menu_item_id} not found or unavailable`);
       }
 
-      const price = parseFloat(menuItemRows[0].price);
-      totalAmount += price * item.quantity;
+      const basePrice = parseFloat(menuItemRows[0].price);
+      let finalPrice = basePrice;
+      
+      const customization = item.customization ? JSON.parse(item.customization) : null;
+      if (customization && customization.options) {
+        if (customization.options.size === 'Large') {
+          finalPrice += parseFloat(menuItemRows[0].surcharge_large || 0);
+        } else if (customization.options.size === 'Extra Large') {
+          finalPrice += parseFloat(menuItemRows[0].surcharge_extra_large || 0);
+        }
+      }
+
+      totalAmount += finalPrice * item.quantity;
       
       orderItemsToInsert.push({
         menu_item_id: item.menu_item_id,
         quantity: item.quantity,
-        price_at_time: price
+        price_at_time: finalPrice,
+        customization: item.customization || null
       });
     }
 
@@ -102,8 +114,8 @@ export async function POST(request: NextRequest) {
 
     for (const oi of orderItemsToInsert) {
       await connection.query(
-        'INSERT INTO order_items (order_id, menu_item_id, quantity, price_at_time) VALUES (?, ?, ?, ?)',
-        [orderId, oi.menu_item_id, oi.quantity, oi.price_at_time]
+        'INSERT INTO order_items (order_id, menu_item_id, quantity, price_at_time, customization) VALUES (?, ?, ?, ?, ?)',
+        [orderId, oi.menu_item_id, oi.quantity, oi.price_at_time, oi.customization]
       );
     }
 

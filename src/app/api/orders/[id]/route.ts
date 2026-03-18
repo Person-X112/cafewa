@@ -44,7 +44,7 @@ export async function GET(
 
     // Fetch order items
     const [items]: any = await pool.query(
-      `SELECT oi.*, m.name as item_name, m.image_url
+      `SELECT oi.*, m.name as item_name, m.image_url, oi.customization
        FROM order_items oi
        JOIN menu_items m ON oi.menu_item_id = m.id
        WHERE oi.order_id = ?`,

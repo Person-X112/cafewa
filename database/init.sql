@@ -58,7 +58,8 @@ CREATE TABLE order_items (
     order_id INT REFERENCES orders(id) ON DELETE CASCADE,
     menu_item_id INT REFERENCES menu_items(id) ON DELETE RESTRICT,
     quantity INTEGER NOT NULL DEFAULT 1,
-    price_at_time DECIMAL(10, 2) NOT NULL -- Price of the item when ordered
+    price_at_time DECIMAL(10, 2) NOT NULL, -- Price of the item when ordered
+    customization TEXT -- Stores JSON string of options and special requests
 );
 
 -- ==========================================
