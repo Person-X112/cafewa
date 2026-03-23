@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import pool from '@/lib/db';
+import db from '@/lib/db';
 import { verifyJWT } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
@@ -15,22 +15,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    let query = 'SELECT * FROM orders';
+    let queryStr = 'SELECT * FROM orders';
     let params: any[] = [];
 
     if (user.role !== 'admin') {
-      query += ' WHERE user_id = ?';
+      queryStr += ' WHERE user_id = ?';
       params.push(Number(user.id));
     }
 
-    query += ' ORDER BY created_at DESC';
+    queryStr += ' ORDER BY created_at DESC';
 
-    const [orders]: any = await pool.query(query, params);
+    const [orders]: any = await db.query(queryStr, params);
 
     // Fetch order items for each order
     for (let order of orders) {
       order.id = Number(order.id);
-      const [items]: any = await pool.query(`
+      const [items]: any = await db.query(`
         SELECT oi.*, m.name as item_name, m.image_url
         FROM order_items oi
         JOIN menu_items m ON oi.menu_item_id = m.id
@@ -47,7 +47,6 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  let connection;
   try {
     const token = request.cookies.get('token')?.value;
     let user: any = null;
@@ -62,17 +61,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Order items are required' }, { status: 400 });
     }
 
-    // Connect and start transaction
-    connection = await pool.getConnection();
-    await connection.beginTransaction();
-
     let totalAmount = 0;
     const orderItemsToInsert = [];
 
-    // Check items and calculate total
+    // Check items and calculate total - sequential SELECTs are okay here before the batch
     for (const item of items) {
-      const [menuItemRows]: any = await connection.query(
-        'SELECT price, surcharge_large, surcharge_extra_large FROM menu_items WHERE id = ? AND is_available = TRUE',
+      const [menuItemRows]: any = await db.query(
+        'SELECT price, surcharge_large, surcharge_extra_large FROM menu_items WHERE id = ? AND is_available = 1',
         [item.menu_item_id]
       );
 
@@ -104,22 +99,31 @@ export async function POST(request: NextRequest) {
 
     // Generate a fake payment session ID (simulating Stripe)
     const paymentSessionId = `sim_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-
     const userId = user ? user.id : null;
-    const [orderResult]: any = await connection.query(
+
+    // In D1, for transactions that need the ID of the first insert, 
+    // we can use a sequence or run them in a way that captures the ID.
+    // Batching doesn't easily allow using the result of one stmt in another within the same batch.
+    // However, SQLite/D1 batch is atomic. 
+    // Since we need orderId for order_items, we'll run the order insert first, 
+    // then batch the items. (D1 single run is atomic, and we can't easily batch with dependency).
+    
+    const [orderResult]: any = await db.query(
       'INSERT INTO orders (user_id, status, total_amount, payment_status, payment_session_id) VALUES (?, ?, ?, ?, ?)',
       [userId, 'pending', totalAmount, 'unpaid', paymentSessionId]
     );
-    const orderId = orderResult.insertId;
+    const orderId = orderResult.meta.last_row_id;
 
-    for (const oi of orderItemsToInsert) {
-      await connection.query(
-        'INSERT INTO order_items (order_id, menu_item_id, quantity, price_at_time, customization) VALUES (?, ?, ?, ?, ?)',
-        [orderId, oi.menu_item_id, oi.quantity, oi.price_at_time, oi.customization]
-      );
+    // Now batch the order items
+    const itemStatements = orderItemsToInsert.map(oi => 
+      db.prepare('INSERT INTO order_items (order_id, menu_item_id, quantity, price_at_time, customization) VALUES (?, ?, ?, ?, ?)')
+        .bind(orderId, oi.menu_item_id, oi.quantity, oi.price_at_time, oi.customization)
+    );
+
+    if (itemStatements.length > 0) {
+      await db.batch(itemStatements);
     }
 
-    await connection.commit();
     return NextResponse.json({
       id: Number(orderId),
       status: 'pending',
@@ -128,14 +132,7 @@ export async function POST(request: NextRequest) {
       payment_session_id: paymentSessionId
     }, { status: 201 });
   } catch (error: any) {
-    if (connection) {
-      await connection.rollback();
-    }
     console.error('Failed to create order:', error);
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
-  } finally {
-    if (connection) {
-      connection.release();
-    }
   }
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import pool from '@/lib/db';
+import db from '@/lib/db';
 import { comparePassword, signJWT } from '@/lib/auth';
 
 export async function POST(request: Request) {
@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     }
 
     // Fetch user by username only to avoid errors if auth_provider column is missing
-    const [rows]: any = await pool.query(
+    const [rows]: any = await db.query(
       'SELECT * FROM users WHERE username = ?',
       [username]
     );

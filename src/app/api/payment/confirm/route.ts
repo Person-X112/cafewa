@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import pool from '@/lib/db';
+import db from '@/lib/db';
 import { verifyJWT } from '@/lib/auth';
 
 // POST /api/payment/confirm
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch the order
-    const [orderRows]: any = await pool.query(
+    const [orderRows]: any = await db.query(
       'SELECT * FROM orders WHERE id = ? AND payment_session_id = ?',
       [order_id, payment_session_id]
     );
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Mark as paid
-    await pool.query(
+    await db.query(
       'UPDATE orders SET payment_status = ?, status = ? WHERE id = ?',
       ['paid', 'preparing', order_id]
     );

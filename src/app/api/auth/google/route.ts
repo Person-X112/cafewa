@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import pool from '@/lib/db';
+import db from '@/lib/db';
 import { signJWT } from '@/lib/auth';
 
 // POST /api/auth/google
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     }
 
     // Check if user already exists with this google_id
-    const [existingRows]: any = await pool.query(
+    const [existingRows]: any = await db.query(
       'SELECT * FROM users WHERE google_id = ?',
       [google_id]
     );
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       user = existingRows[0];
     } else {
       // Check if email already taken by a local user
-      const [emailRows]: any = await pool.query(
+      const [emailRows]: any = await db.query(
         'SELECT * FROM users WHERE email = ? AND auth_provider = ?',
         [email, 'local']
       );
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
       // Create new Google user
       // Use email prefix as username, append random suffix if taken
       let username = email.split('@')[0];
-      const [usernameRows]: any = await pool.query(
+      const [usernameRows]: any = await db.query(
         'SELECT id FROM users WHERE username = ?',
         [username]
       );
@@ -52,13 +52,13 @@ export async function POST(request: Request) {
         username = `${username}_${Date.now().toString(36)}`;
       }
 
-      const [result]: any = await pool.query(
+      const [result]: any = await db.query(
         'INSERT INTO users (username, email, display_name, google_id, auth_provider, role) VALUES (?, ?, ?, ?, ?, ?)',
         [username, email, display_name || username, google_id, 'google', 'client']
       );
 
       user = {
-        id: Number(result.insertId),
+        id: Number(result.meta.last_row_id),
         username,
         email,
         display_name: display_name || username,
