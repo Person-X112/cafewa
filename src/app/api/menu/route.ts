@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import pool from '@/lib/db';
+import db from '@/lib/db';
 
 export async function GET() {
   try {
-    const [rows]: any = await pool.query(`
+    const [rows]: any = await db.query(`
       SELECT m.*, c.name as category_name 
       FROM menu_items m
       LEFT JOIN categories c ON m.category_id = c.id
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Category ID, name, and price are required' }, { status: 400 });
     }
 
-    const [result]: any = await pool.query(
+    const [result]: any = await db.query(
       'INSERT INTO menu_items (category_id, name, description, price, image_url, is_available, surcharge_large, surcharge_extra_large) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       [
         category_id, 
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     );
 
     return NextResponse.json({ 
-      id: Number(result.insertId), 
+      id: Number(result.meta.last_row_id), 
       category_id: Number(category_id), 
       name, 
       description, 

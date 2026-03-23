@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import pool from '@/lib/db';
+import db from '@/lib/db';
 import { verifyJWT } from '@/lib/auth';
 
 // GET /api/orders/[id] — get a single order with items
@@ -26,7 +26,7 @@ export async function GET(
     }
 
     // Fetch the order
-    const [orderRows]: any = await pool.query(
+    const [orderRows]: any = await db.query(
       'SELECT * FROM orders WHERE id = ?',
       [orderId]
     );
@@ -43,7 +43,7 @@ export async function GET(
     }
 
     // Fetch order items
-    const [items]: any = await pool.query(
+    const [items]: any = await db.query(
       `SELECT oi.*, m.name as item_name, m.image_url, oi.customization
        FROM order_items oi
        JOIN menu_items m ON oi.menu_item_id = m.id
@@ -108,7 +108,7 @@ export async function PATCH(
       );
     }
 
-    await pool.query('UPDATE orders SET status = ? WHERE id = ?', [status, orderId]);
+    await db.query('UPDATE orders SET status = ? WHERE id = ?', [status, orderId]);
 
     return NextResponse.json({ success: true, id: orderId, status });
   } catch (error) {

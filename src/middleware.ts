@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifyJWT } from "@/lib/auth";
-import pool from "@/lib/db";
 
 export async function middleware(request: NextRequest) {
   try {

@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import pool from "@/lib/db";
+import db from "@/lib/db";
 
 export async function GET() {
   try {
-    const [rows]: any = await pool.query(
+    const [rows]: any = await db.query(
       "SELECT * FROM categories ORDER BY sort_order ASC",
     );
     const formattedRows = rows.map((row: any) => ({
@@ -28,17 +28,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
-    const [result]: any = await pool.query(
+    const [result]: any = await db.query(
       "INSERT INTO categories (name, description, sort_order) VALUES (?, ?, ?)",
       [name, description, sort_order || 0],
     );
 
     return NextResponse.json(
-      { id: Number(result.insertId), name, description, sort_order },
+      { id: Number(result.meta.last_row_id), name, description, sort_order },
       { status: 201 },
     );
   } catch (error: any) {
-    if (error.code === "ER_DUP_ENTRY") {
+    if (error.message?.includes("UNIQUE constraint failed") || error.code === "SQLITE_CONSTRAINT") {
       return NextResponse.json(
         { error: "Category already exists" },
         { status: 409 },

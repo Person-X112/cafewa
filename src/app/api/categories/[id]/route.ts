@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import pool from '@/lib/db';
+import db from '@/lib/db';
 import { verifyJWT } from '@/lib/auth';
 
 export async function GET(
@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const [rows]: any = await pool.query('SELECT * FROM categories WHERE id = ?', [id]);
+    const [rows]: any = await db.query('SELECT * FROM categories WHERE id = ?', [id]);
     
     if (rows.length === 0) {
       return NextResponse.json({ error: 'Category not found' }, { status: 404 });
@@ -36,7 +36,7 @@ export async function PUT(
     const { id } = await params;
     const { name, description, sort_order } = await request.json();
 
-    await pool.query(
+    await db.query(
       'UPDATE categories SET name = ?, description = ?, sort_order = ? WHERE id = ?',
       [name, description, sort_order, id]
     );
@@ -59,7 +59,7 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    await pool.query('DELETE FROM categories WHERE id = ?', [id]);
+    await db.query('DELETE FROM categories WHERE id = ?', [id]);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
