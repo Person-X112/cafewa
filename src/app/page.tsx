@@ -32,9 +32,11 @@ export default function Home() {
   const { addItem, totalItems } = useCart();
   const { user, loading: authLoading, logout } = useAuth();
 
-  // Modal State
+  // Modal & Feedback State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [addedItemIds, setAddedItemIds] = useState<Set<number>>(new Set());
+  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     async function fetchMenu() {
@@ -70,7 +72,18 @@ export default function Home() {
       name: item.name,
       price: parseFloat(String(item.price)),
       category_name: item.category_name,
+      image_url: item.image_url || '/images/coffee.png',
     });
+
+    // Visual feedback
+    setAddedItemIds(prev => new Set(prev).add(item.id));
+    setTimeout(() => {
+      setAddedItemIds(prev => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
+    }, 1500);
   };
 
   const handleConfirmCustomization = (options: { milk: string; size: string; note: string; price: number }) => {
@@ -80,22 +93,45 @@ export default function Home() {
         name: selectedItem.name,
         price: options.price, // Use calculated price from modal
         category_name: selectedItem.category_name,
+        image_url: selectedItem.image_url || '/images/coffee.png',
         options: { milk: options.milk, size: options.size },
         note: options.note,
       });
+
+      // Visual feedback
+      const itemId = selectedItem.id;
+      setAddedItemIds(prev => new Set(prev).add(itemId));
+      setTimeout(() => {
+        setAddedItemIds(prev => {
+          const next = new Set(prev);
+          next.delete(itemId);
+          return next;
+        });
+      }, 1500);
+
       setIsModalOpen(false);
       setSelectedItem(null);
     }
   };
+  
+  const toggleExpand = (id: number) => {
+    setExpandedItems(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col items-center p-8">
-      <header className="w-full max-w-4xl flex justify-between items-center mb-12">
-        <h1 className="text-4xl font-black text-foreground tracking-tight">Cafe Menu</h1>
+    <div className="min-h-screen bg-background text-foreground flex flex-col items-center p-4 sm:p-8">
+      <header className="w-full max-w-4xl flex flex-col sm:flex-row justify-between items-center gap-6 mb-8 sm:mb-12">
+        <h1 className="text-4xl sm:text-5xl font-black text-primary tracking-tight font-cursive">Cafe Aroma</h1>
         <div className="flex items-center gap-4">
           <Link
             href="/cart"
-            className="px-5 py-2.5 bg-foreground text-background font-bold rounded-xl hover:opacity-90 transition relative shadow-lg shadow-foreground/10"
+            key={totalItems} 
+            className="px-5 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:opacity-90 transition relative shadow-lg shadow-primary/10"
           >
             Cart
             {totalItems > 0 && (
@@ -152,44 +188,116 @@ export default function Home() {
             const categoryItems = menuItems.filter((item) => item.category_id === category.id);
             if (categoryItems.length === 0) return null;
             return (
-              <section key={category.id} className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
-                <div className="flex items-center gap-4">
-                  <h2 className="text-3xl font-black text-foreground tracking-tight whitespace-nowrap">{category.name}</h2>
+              <section key={category.id} className="space-y-8">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <h2 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight whitespace-nowrap font-cursive">{category.name}</h2>
                   <div className="h-px w-full bg-border mt-2"></div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {categoryItems.map((item) => (
-                    <div key={item.id} className="card-premium p-4 flex gap-5 group hover:border-primary transition-all duration-300">
-                      <div className="w-32 h-32 rounded-2xl overflow-hidden bg-input relative shrink-0 shadow-inner">
-                        <img 
-                          src={item.image_url || '/images/coffee.png'} 
-                          alt={item.name} 
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        />
-                        {!item.is_available && (
-                          <div className="absolute inset-0 bg-background/80 backdrop-blur-[1px] flex items-center justify-center p-2 text-center">
-                            <span className="text-[10px] font-black text-foreground uppercase tracking-tighter">Unavailable</span>
+                    <div 
+                      key={item.id} 
+                      onClick={() => item.description && item.description.length > 60 && toggleExpand(item.id)}
+                      className={`card-premium p-4 flex flex-col transition-all duration-500 cursor-pointer overflow-hidden ${
+                        expandedItems.has(item.id) ? 'ring-2 ring-primary bg-input/50' : 'hover:border-primary'
+                      }`}
+                    >
+                      <div className="flex flex-row gap-4 sm:gap-5 min-w-0">
+                        <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl overflow-hidden bg-input relative shrink-0 shadow-inner">
+                          <img
+                            src={item.image_url || '/images/coffee.png'}
+                            alt={item.name}
+                            className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                          />
+                          {!item.is_available && (
+                            <div className="absolute inset-0 bg-background/80 backdrop-blur-[1px] flex items-center justify-center p-2 text-center">
+                              <span className="text-[10px] font-black text-foreground uppercase tracking-tighter">Unavailable</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 flex flex-col justify-between py-1 min-w-0">
+                          <div>
+                            <div className="flex justify-between items-start">
+                              <h3 className="font-bold text-lg sm:text-xl text-foreground truncate">{item.name}</h3>
+                              {item.description && item.description.length > 60 && (
+                                <div className={`transition-transform duration-300 ${expandedItems.has(item.id) ? 'rotate-180' : ''}`}>
+                                  <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+                                </div>
+                              )}
+                            </div>
+                            <span className="text-2xl font-black text-primary mt-1 block">
+                              ${Number(item.price).toFixed(2)}
+                            </span>
                           </div>
-                        )}
-                      </div>
-                      <div className="flex-1 flex flex-col justify-between py-1">
-                        <div>
-                          <h3 className="font-bold text-xl text-foreground group-hover:text-primary transition-colors">{item.name}</h3>
-                          <p className="text-muted-foreground text-sm line-clamp-2 mt-1 font-medium">{item.description}</p>
-                        </div>
-                        <div className="flex justify-between items-end mt-4">
-                          <span className="text-2xl font-black text-foreground">
-                            ${Number(item.price).toFixed(2)}
-                          </span>
-                          <button
-                            onClick={() => handleAddToCart(item)}
-                            disabled={!item.is_available}
-                            className="px-5 py-2.5 bg-primary text-primary-foreground text-xs font-black rounded-xl hover:opacity-90 transition-all disabled:opacity-30 disabled:grayscale scale-95 group-hover:scale-100 active:scale-90 shadow-lg shadow-primary/20 uppercase tracking-widest"
-                          >
-                            Add to Cart
-                          </button>
+                          
+                          <div className="hidden sm:flex justify-end mt-2">
+                             <button
+                              onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}
+                              disabled={!item.is_available}
+                              className={`px-4 py-2 text-xs font-black rounded-xl transition-all shadow-md uppercase tracking-widest flex items-center gap-2 ${
+                                addedItemIds.has(item.id) ? 'bg-success text-white' : 'bg-primary text-primary-foreground hover:opacity-90'
+                              }`}
+                            >
+                              {addedItemIds.has(item.id) ? 'Added' : 'Add to Cart'}
+                            </button>
+                          </div>
                         </div>
                       </div>
+
+                      {/* Expandable description section */}
+                      <div className={`transition-all duration-500 ease-in-out ${
+                        expandedItems.has(item.id) ? 'max-h-96 mt-4 opacity-100' : 'max-h-0 opacity-0'
+                      }`}>
+                        <div className="pt-4 border-t border-border/50">
+                          <p className="text-muted-foreground text-sm font-medium leading-relaxed">
+                            {item.description}
+                          </p>
+                          <div className="flex sm:hidden justify-end mt-6">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}
+                              disabled={!item.is_available}
+                              className={`w-full py-3 text-sm font-black rounded-xl transition-all shadow-lg uppercase tracking-widest flex items-center justify-center gap-2 ${
+                                addedItemIds.has(item.id) ? 'bg-success text-white' : 'bg-primary text-primary-foreground hover:opacity-90'
+                              }`}
+                            >
+                              {addedItemIds.has(item.id) ? (
+                                <>
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                  <span>Added to Cart</span>
+                                </>
+                              ) : (
+                                'Add to Cart'
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Fallback for non-expanded view on mobile - show clamped description */}
+                      {!expandedItems.has(item.id) && (
+                        <p className="text-muted-foreground text-xs mt-3 line-clamp-1 sm:hidden">
+                          {item.description}
+                        </p>
+                      )}
+                      
+                      {/* Mobile action button when NOT expanded */}
+                      {!expandedItems.has(item.id) && (
+                         <div className="flex sm:hidden justify-end mt-3">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}
+                              disabled={!item.is_available}
+                              className={`p-2 rounded-lg transition-all ${
+                                addedItemIds.has(item.id) ? 'bg-success text-white' : 'bg-primary text-primary-foreground'
+                              }`}
+                            >
+                               {addedItemIds.has(item.id) ? (
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                               ) : (
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                               )}
+                            </button>
+                         </div>
+                      )}
                     </div>
                   ))}
                 </div>

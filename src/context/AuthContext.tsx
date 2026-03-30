@@ -13,7 +13,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
+  loginWithGoogle: (idToken: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -62,20 +62,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const loginWithGoogle = async () => {
-    // Simulated Google auth — in production, use Google Sign-In SDK
-    // For now, create a fake Google user
+  const loginWithGoogle = async (idToken: string) => {
     try {
-      const fakeGoogleId = `google_${Date.now()}`;
-      const fakeEmail = `user_${Date.now()}@gmail.com`;
       const res = await fetch('/api/auth/google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          google_id: fakeGoogleId,
-          email: fakeEmail,
-          display_name: 'Google User',
-        }),
+        body: JSON.stringify({ idToken }),
       });
       const data = await res.json();
       if (res.ok && data.success) {

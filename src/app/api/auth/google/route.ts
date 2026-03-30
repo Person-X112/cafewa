@@ -1,20 +1,36 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { signJWT } from '@/lib/auth';
+import { OAuth2Client } from 'google-auth-library';
 
-// POST /api/auth/google
-// Simulated Google OAuth login/register
-// In production, you'd verify the Google ID token here
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
 export async function POST(request: Request) {
   try {
-    const { google_id, email, display_name } = await request.json();
+    const { idToken } = await request.json();
 
-    if (!google_id || !email) {
+    if (!idToken) {
       return NextResponse.json(
-        { error: 'google_id and email are required' },
+        { error: 'idToken is required' },
         { status: 400 }
       );
     }
+
+    // Verify the Google ID token
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+
+    if (!payload || !payload.sub || !payload.email) {
+      return NextResponse.json(
+        { error: 'Invalid token payload' },
+        { status: 401 }
+      );
+    }
+
+    const { sub: google_id, email, name: display_name } = payload;
 
     // Check if user already exists with this google_id
     const [existingRows]: any = await db.query(
@@ -49,7 +65,7 @@ export async function POST(request: Request) {
         [username]
       );
       if (usernameRows.length > 0) {
-        username = `${username}_${Date.now().toString(36)}`;
+        username = `${username}_${Math.random().toString(36).substring(2, 7)}`;
       }
 
       const [result]: any = await db.query(
@@ -57,8 +73,11 @@ export async function POST(request: Request) {
         [username, email, display_name || username, google_id, 'google', 'client']
       );
 
+      // result.meta.last_row_id for D1, might vary depending on how db.query is wrapped
+      const userId = result.meta?.last_row_id || result.insertId;
+
       user = {
-        id: Number(result.meta.last_row_id),
+        id: Number(userId),
         username,
         email,
         display_name: display_name || username,

@@ -8,6 +8,7 @@ interface CustomizationModalProps {
     name: string;
     price: number;
     category_name: string;
+    image_url?: string;
     surcharge_large?: number;
     surcharge_extra_large?: number;
   };

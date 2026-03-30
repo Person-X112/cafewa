@@ -81,17 +81,17 @@ export default function CheckoutPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500">Loading order...</p>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground animate-pulse font-bold">Loading order...</p>
       </div>
     );
   }
 
   if (error && !order) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-8">
-        <p className="text-red-600 mb-4">{error}</p>
-        <Link href="/" className="text-blue-600 hover:underline">Go back to menu</Link>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
+        <p className="text-destructive font-bold mb-4">{error}</p>
+        <Link href="/" className="text-primary hover:underline font-bold">Go back to menu</Link>
       </div>
     );
   }
@@ -100,63 +100,65 @@ export default function CheckoutPage() {
 
   if (order.payment_status === 'paid') {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-8">
-        <h1 className="text-2xl font-bold text-green-700 mb-4">This order is already paid!</h1>
-        <Link href="/orders" className="text-blue-600 hover:underline">View your orders</Link>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
+        <h1 className="text-2xl font-black text-success mb-4 font-cursive">This order is already paid!</h1>
+        <Link href="/orders" className="text-primary hover:underline font-bold">View your orders</Link>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center p-8">
+    <div className="min-h-screen bg-background text-foreground flex flex-col items-center p-4 sm:p-8">
       <div className="w-full max-w-lg">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Checkout</h1>
-        <p className="text-gray-500 mb-6">Order #{order.id}</p>
+        <h1 className="text-4xl font-black text-primary mb-2 font-cursive tracking-tight">Checkout</h1>
+        <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px] mb-8">Order #{order.id}</p>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 text-destructive rounded-2xl text-sm font-bold">
             {error}
           </div>
         )}
 
         {/* Simulated Stripe checkout */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-purple-600 rounded flex items-center justify-center text-white text-xs font-bold">S</div>
-            <span className="font-semibold text-gray-800">Stripe Payment (Simulated)</span>
+        <div className="card-premium p-6 sm:p-8 mb-8 bg-card shadow-2xl shadow-primary/5">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary text-xs font-black">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+            </div>
+            <span className="font-black text-foreground uppercase tracking-widest text-xs">Simulated Payment</span>
           </div>
-          <p className="text-sm text-gray-500 mb-4">
-            This is a simulated payment gateway. In production, you would be redirected to Stripe&apos;s secure checkout.
+          <p className="text-xs text-muted-foreground mb-6 font-medium leading-relaxed">
+            This is a secure simulation. In a live environment, you would proceed to a certified payment processor.
           </p>
 
-          <div className="border-t border-gray-100 pt-4 space-y-2">
+          <div className="border-t border-border/50 pt-6 space-y-3">
             {order.items.map((item) => (
               <div key={item.id} className="flex justify-between text-sm">
-                <span className="text-gray-700">
-                  {item.item_name} x{item.quantity}
+                <span className="text-muted-foreground font-medium">
+                  {item.item_name} <span className="text-[10px] bg-input px-1.5 py-0.5 rounded ml-1">×{item.quantity}</span>
                 </span>
-                <span className="text-gray-900 font-medium">
+                <span className="text-foreground font-black">
                   ${(parseFloat(String(item.price_at_time)) * item.quantity).toFixed(2)}
                 </span>
               </div>
             ))}
           </div>
 
-          <div className="border-t border-gray-200 mt-4 pt-4 flex justify-between text-lg font-bold">
-            <span>Total</span>
-            <span>${parseFloat(String(order.total_amount)).toFixed(2)}</span>
+          <div className="border-t border-border mt-6 pt-6 flex justify-between items-center">
+            <span className="font-bold text-muted-foreground uppercase tracking-widest text-[10px]">Total Amount</span>
+            <span className="text-3xl font-black text-primary tracking-tighter">${parseFloat(String(order.total_amount)).toFixed(2)}</span>
           </div>
         </div>
 
         <button
           onClick={handlePay}
           disabled={paying}
-          className="w-full py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition disabled:bg-gray-400 text-lg"
+          className="w-full py-5 bg-primary text-primary-foreground font-black rounded-2xl shadow-xl shadow-primary/20 hover:opacity-90 transition active:scale-[0.98] disabled:opacity-30 flex items-center justify-center gap-3 uppercase tracking-[0.2em] text-xs"
         >
-          {paying ? 'Processing Payment...' : `Pay $${parseFloat(String(order.total_amount)).toFixed(2)}`}
+          {paying ? 'Processing...' : `Pay $${parseFloat(String(order.total_amount)).toFixed(2)}`}
         </button>
 
-        <Link href="/" className="block mt-4 text-center text-sm text-gray-500 hover:text-gray-700">
+        <Link href="/" className="block mt-6 text-center text-[10px] font-black text-muted-foreground hover:text-primary transition-colors uppercase tracking-[0.2em]">
           Cancel and return to menu
         </Link>
       </div>

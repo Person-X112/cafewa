@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 
+import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
+
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -28,28 +30,36 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setError('');
-    setSubmitting(true);
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    if (credentialResponse.credential) {
+      setError('');
+      setSubmitting(true);
+      const result = await loginWithGoogle(credentialResponse.credential);
+      setSubmitting(false);
 
-    const result = await loginWithGoogle();
-    setSubmitting(false);
-
-    if (result.success) {
-      router.push('/');
-    } else {
-      setError(result.error || 'Google login failed');
+      if (result.success) {
+        router.push('/');
+      } else {
+        setError(result.error || 'Google login failed');
+      }
     }
   };
 
+  const handleGoogleError = () => {
+    setError('Google login failed. Please try again.');
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-background flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        <h1 className="text-center text-5xl font-black text-primary font-cursive tracking-tight">
+          Cafe Aroma
+        </h1>
+        <h2 className="mt-4 text-center text-xl font-bold text-muted-foreground">
           Sign in to your account
         </h2>
         <p className="mt-2 text-center text-sm text-gray-500">
-          <Link href="/" className="text-blue-600 hover:underline">
+          <Link href="/" className="text-primary hover:underline font-bold">
             &larr; Back to menu
           </Link>
         </p>
@@ -119,14 +129,18 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="mt-6">
-              <button
-                onClick={handleGoogleLogin}
-                disabled={submitting}
-                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100"
-              >
-                Sign in with Google (Simulated)
-              </button>
+            <div className="mt-6 flex justify-center">
+              <GoogleOAuthProvider
+                children={<GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  useOneTap
+                  theme="outline"
+                  size="large"
+                  width="100%"
+                />}
+                clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}>
+              </GoogleOAuthProvider>
             </div>
           </div>
 

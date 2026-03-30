@@ -2,7 +2,7 @@ import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
 
 const getJwtSecretKey = () => {
-  const secret = process.env.JWT_SECRET_KEY || 'super_secret_cafe_key_for_dev';
+  const secret = process.env.JWT_SECRET_KEY;
   if (!secret || secret.length === 0) {
     throw new Error('The environment variable JWT_SECRET_KEY is not set.');
   }

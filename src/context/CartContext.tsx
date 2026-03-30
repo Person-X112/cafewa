@@ -6,13 +6,14 @@ export interface CartItem {
   id: number;
   name: string;
   price: number;
-  quantity?: number; // Changed to optional
+  image_url: string; // Added image_url
+  quantity?: number;
   category_name?: string;
   options?: {
     milk?: string;
     size?: string;
   };
-  note?: string; // Added note
+  note?: string; 
 }
 
 interface CartContextType {

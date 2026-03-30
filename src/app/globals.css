@@ -2,29 +2,30 @@
 
 :root {
   /* Brand Colors */
-  --primary: #2563eb;
-  --primary-foreground: #ffffff;
-  --secondary: #64748b;
-  --secondary-foreground: #ffffff;
-  --accent: #f59e0b;
-  --accent-foreground: #ffffff;
+  --primary: #4A3728; /* Dark Brown */
+  --primary-foreground: #FDFBF7; /* Light Cream */
+  --secondary: #6B5543;
+  --secondary-foreground: #FDFBF7;
+  --accent: #8D6E63;
+  --accent-foreground: #FDFBF7;
   
   /* UI Colors */
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  --border: #e2e8f0;
-  --input: #f1f5f9;
+  --background: #FDFBF7; /* Light Cream */
+  --foreground: #2D1E17; /* Very Dark Brown */
+  --card: #FFFFFF;
+  --card-foreground: #2D1E17;
+  --border: #E5E0D5;
+  --input: #F3EEE5;
   
   /* Status Colors */
-  --success: #10b981;
-  --destructive: #ef4444;
-  --muted: #94a3b8;
-  --muted-foreground: #64748b;
+  --success: #6D8B74; /* Muted green to match cafe aesthetic */
+  --destructive: #A64B2A; /* Muted rust/red */
+  --muted: #A3968F;
+  --muted-foreground: #6B5543;
 
   /* Font Family */
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-cursive: var(--font-caveat), 'Caveat', cursive;
 }
 
 @theme inline {
@@ -50,16 +51,54 @@
   --font-sans: var(--font-sans);
 }
 
-body {
+html, body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  overflow-x: hidden;
+  position: relative;
+  width: 100%;
 }
 
 /* Base utility for cards to avoid duplication */
 .card-premium {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 1.5rem; /* 24px */
+  border-radius: 1rem; /* Default 16px for mobile */
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+@media (min-width: 640px) {
+  .card-premium {
+    border-radius: 1.5rem; /* 24px for desktop */
+  }
+}
+
+/* Animations */
+@keyframes bounce-small {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-bounce-small {
+  animation: bounce-small 0.3s ease-in-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+.icon-rotate-180 {
+  transform: rotate(180deg);
+  transition: transform 0.3s ease;
+}
+
+.icon-rotate-0 {
+  transform: rotate(0deg);
+  transition: transform 0.3s ease;
 }
