@@ -15,6 +15,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: (idToken: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
+  signup: (username: string, email: string, password: string, confirmPassword: string) => Promise<{ success: boolean; error?: string }>;
   refreshUser: () => Promise<void>;
 }
 
@@ -79,7 +80,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, error: 'Network error' };
     }
   };
-
   const logout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -89,8 +89,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const signup = async (username: string, email: string, password: string, confirmPassword: string) => {
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password, confirmPassword }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setUser(data.user);
+        return { success: true };
+      }
+      return { success: false, error: data.error || 'Signup failed' };
+    } catch {
+      return { success: false, error: 'Network error' };
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, logout, signup, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

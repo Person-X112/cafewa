@@ -4,30 +4,57 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
-
 import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
 
 export default function LoginPage() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const router = useRouter();
+  const { login, signup, loginWithGoogle } = useAuth();
+  const [isFlipped, setIsFlipped] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const router = useRouter();
-  const { login, loginWithGoogle } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Login form state
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+
+  // Signup form state
+  const [signupUsername, setSignupUsername] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+  const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
+
+  const toggleFlip = () => {
+    setIsFlipped(!isFlipped);
+    setError('');
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSubmitting(true);
-
-    const result = await login(username, password);
+    const result = await login(loginUsername, loginPassword);
     setSubmitting(false);
+    if (result.success) router.push('/');
+    else setError(result.error || 'Login failed');
+  };
 
-    if (result.success) {
-      router.push('/');
-    } else {
-      setError(result.error || 'Login failed');
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (signupPassword !== signupConfirmPassword) {
+      setError('Passwords do not match');
+      return;
     }
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
+    if (!passwordRegex.test(signupPassword)) {
+      setError('Password needs 6+ chars, uppercase, lowercase, and a number.');
+      return;
+    }
+    setSubmitting(true);
+    const result = await signup(signupUsername, signupEmail, signupPassword, signupConfirmPassword);
+    setSubmitting(false);
+    if (result.success) router.push('/');
+    else setError(result.error || 'Signup failed');
   };
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
@@ -36,118 +63,187 @@ export default function LoginPage() {
       setSubmitting(true);
       const result = await loginWithGoogle(credentialResponse.credential);
       setSubmitting(false);
-
-      if (result.success) {
-        router.push('/');
-      } else {
-        setError(result.error || 'Google login failed');
-      }
+      if (result.success) router.push('/');
+      else setError(result.error || 'Google login failed');
     }
   };
 
-  const handleGoogleError = () => {
-    setError('Google login failed. Please try again.');
-  };
-
   return (
-    <div className="min-h-screen bg-background flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h1 className="text-center text-5xl font-black text-primary font-cursive tracking-tight">
+    <div className="min-h-screen bg-[#FDFBF7] flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
+      {/* Brand Header */}
+      <div className="mb-10 text-center animate-slide-up">
+        <div className="inline-block p-3 bg-primary/10 rounded-full mb-4">
+          <svg className="w-8 h-8 text-primary" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M2 21h18v-2H2v2M20 8h-2V5h2v3m2-3v5c0 1.1-.9 2-2 2h-2v2c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h14c1.1 0 2 .9 2 2h2v3m-4 5V5H4v8h12Z" />
+          </svg>
+        </div>
+        <h1 className="text-6xl font-black text-primary font-cursive tracking-tight mb-2">
           Cafe Aroma
         </h1>
-        <h2 className="mt-4 text-center text-xl font-bold text-muted-foreground">
-          Sign in to your account
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-500">
-          <Link href="/" className="text-primary hover:underline font-bold">
-            &larr; Back to menu
-          </Link>
-        </p>
+        <p className="text-secondary font-medium tracking-wide italic">A soothing experience in every cup</p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
-              {error}
-            </div>
-          )}
+      {/* Flippable Card Container */}
+      <div className={`flip-card ${isFlipped ? 'flipped' : ''}`}>
+        <div className="flip-card-inner">
+          
+          {/* FRONT: LOGIN */}
+          <div className="flip-card-front">
+            <div className="bg-white p-8 sm:p-10 rounded-3xl shadow-[0_20px_50px_rgba(74,55,40,0.15)] border border-[#E5E0D5] flex flex-col h-full">
+              <h2 className="text-3xl font-black text-primary font-cursive mb-6 text-center">Welcome Back</h2>
+              
+              {error && !isFlipped && (
+                <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400 text-red-700 rounded-lg text-sm font-medium">
+                  {error}
+                </div>
+              )}
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-                Username
-              </label>
-              <div className="mt-1">
-                <input
-                  id="username"
-                  name="username"
-                  type="text"
-                  required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                />
+              <form className="space-y-6 flex-grow" onSubmit={handleLogin}>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-secondary ml-1">Username</label>
+                  <input
+                    type="text"
+                    required
+                    value={loginUsername}
+                    onChange={(e) => setLoginUsername(e.target.value)}
+                    placeholder="Enter your username"
+                    className="input-premium w-full text-base"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-secondary ml-1">Password</label>
+                  <input
+                    type="password"
+                    required
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="input-premium w-full text-base"
+                  />
+                </div>
+
+                <button type="submit" disabled={submitting} className="btn-premium w-full text-lg py-4 mt-4">
+                  {submitting ? 'Brewing session...' : 'Sign In'}
+                </button>
+              </form>
+
+              <div className="mt-8">
+                <div className="relative flex items-center justify-center mb-6">
+                  <div className="border-t border-[#E5E0D5] w-full absolute"></div>
+                  <span className="bg-white px-4 text-xs font-bold text-muted uppercase tracking-widest relative z-10">Or continue with</span>
+                </div>
+
+                <div className="flex justify-center w-full">
+                  <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}>
+                    <GoogleLogin
+                      onSuccess={handleGoogleSuccess}
+                      onError={() => setError('Google login failed')}
+                      useOneTap
+                      theme="outline"
+                      shape="pill"
+                      width="100%"
+                    />
+                  </GoogleOAuthProvider>
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <div className="mt-1">
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                />
+              <div className="mt-8 pt-6 border-t border-[#F3EEE5] text-center">
+                <p className="text-sm text-secondary font-medium">
+                  New to Cafe Aroma?{' '}
+                  <button onClick={toggleFlip} className="text-primary font-black hover:underline underline-offset-4 decoration-2 transition-all">
+                    Create an account
+                  </button>
+                </p>
               </div>
-            </div>
-
-            <div>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400"
-              >
-                {submitting ? 'Signing in...' : 'Sign in'}
-              </button>
-            </div>
-          </form>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Or continue with</span>
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-center">
-              <GoogleOAuthProvider
-                children={<GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={handleGoogleError}
-                  useOneTap
-                  theme="outline"
-                  size="large"
-                  width="100%"
-                />}
-                clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}>
-              </GoogleOAuthProvider>
             </div>
           </div>
 
-          <div className="mt-6 text-sm text-center text-gray-500">
-            Demo: username <strong>admin</strong> / password <strong>admin123</strong>
+          {/* BACK: SIGNUP */}
+          <div className="flip-card-back">
+            <div className="bg-white p-8 sm:p-10 rounded-3xl shadow-[0_20px_50px_rgba(74,55,40,0.15)] border border-[#E5E0D5] flex flex-col h-full">
+              <h2 className="text-3xl font-black text-primary font-cursive mb-6 text-center">Join the Community</h2>
+
+              {error && isFlipped && (
+                <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400 text-red-700 rounded-lg text-sm font-medium">
+                  {error}
+                </div>
+              )}
+
+              <form className="space-y-4 flex-grow" onSubmit={handleSignup}>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-secondary ml-1">Username</label>
+                  <input
+                    type="text"
+                    required
+                    value={signupUsername}
+                    onChange={(e) => setSignupUsername(e.target.value)}
+                    className="input-premium w-full py-2"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-secondary ml-1">Email</label>
+                  <input
+                    type="email"
+                    required
+                    value={signupEmail}
+                    onChange={(e) => setSignupEmail(e.target.value)}
+                    className="input-premium w-full py-2"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-secondary ml-1">Password</label>
+                    <input
+                      type="password"
+                      required
+                      value={signupPassword}
+                      onChange={(e) => setSignupPassword(e.target.value)}
+                      className="input-premium w-full py-2"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-secondary ml-1">Confirm</label>
+                    <input
+                      type="password"
+                      required
+                      value={signupConfirmPassword}
+                      onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                      className="input-premium w-full py-2"
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" disabled={submitting} className="btn-premium w-full py-3.5 mt-4">
+                  {submitting ? 'Setting your table...' : 'Begin Journey'}
+                </button>
+              </form>
+
+              <div className="mt-8 pt-6 border-t border-[#F3EEE5] text-center">
+                <p className="text-sm text-secondary font-medium">
+                  Already a member?{' '}
+                  <button onClick={toggleFlip} className="text-primary font-black hover:underline underline-offset-4 decoration-2 transition-all">
+                    Sign in here
+                  </button>
+                </p>
+              </div>
+              
+              <div className="mt-4 text-[10px] text-muted text-center leading-tight">
+                By signing up, you agree to our <span className="underline cursor-pointer">Terms</span> and <span className="underline cursor-pointer">Privacy Policy</span>.
+              </div>
+            </div>
           </div>
+
         </div>
+      </div>
+
+      <div className="mt-12 animate-slide-up">
+        <Link href="/" className="flex items-center text-secondary hover:text-primary transition-colors font-bold group">
+          <span className="mr-2 group-hover:-translate-x-1 transition-transform inline-block">←</span>
+          Return to Browse Menu
+        </Link>
       </div>
     </div>
   );

@@ -21,13 +21,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    // Support both plaintext (from seed data) and bcrypt hashed passwords
-    let isValid = false;
-    if (user.password_hash && (user.password_hash.startsWith('$2a$') || user.password_hash.startsWith('$2b$'))) {
-      isValid = await comparePassword(password, user.password_hash);
-    } else {
-      isValid = password === user.password_hash;
-    }
+    // Support plaintext, bcrypt, and SHA-256 passwords
+    const isValid = await comparePassword(password, user.password_hash || '');
 
     if (!isValid) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
