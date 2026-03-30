@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 
 export default function AdminLayout({
   children,
@@ -9,6 +10,12 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Close sidebar on navigation (mobile)
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [pathname]);
 
   const navItems = [
     { name: "Dashboard", href: "/admin", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
@@ -17,16 +24,46 @@ export default function AdminLayout({
     { name: "Users", href: "/admin/users", icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" },
   ];
 
+  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+
   return (
     <div className="min-h-screen bg-[#FDFBF7] flex flex-col md:flex-row font-sans">
+      {/* Mobile Header Bar - Visible only below 768px */}
+      <header className="md:hidden bg-primary text-primary-foreground p-4 flex items-center justify-between sticky top-0 z-30 shadow-md">
+        <h1 className="text-2xl font-black font-cursive tracking-tight text-white">Cafe Admin</h1>
+        <button 
+          onClick={toggleSidebar}
+          className="p-2 bg-primary-foreground/10 rounded-lg text-white"
+          aria-label="Toggle Menu"
+        >
+          {isSidebarOpen ? (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          ) : (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+          )}
+        </button>
+      </header>
+
+      {/* Overlay - Visible only when sidebar is open on mobile */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-20 md:hidden backdrop-blur-sm"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar for admin */}
-      <aside className="w-full md:w-72 bg-primary text-primary-foreground flex flex-col shadow-2xl z-20">
-        <div className="p-8 bg-primary/95 border-b border-primary-foreground/10">
+      <aside className={`
+        fixed md:static inset-y-0 left-0 z-30
+        w-72 bg-primary text-primary-foreground flex flex-col shadow-2xl transition-transform duration-300 transform
+        ${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+      `}>
+        <div className="p-8 bg-primary/95 border-b border-primary-foreground/10 hidden md:block">
           <h1 className="text-3xl font-black font-cursive tracking-tight">Cafe Admin</h1>
           <p className="text-[10px] uppercase tracking-[0.3em] font-black opacity-50 mt-1">Management Terminal</p>
         </div>
         
-        <nav className="flex-1 p-6 space-y-3">
+        <nav className="flex-1 p-6 space-y-3 mt-16 md:mt-0">
           {navItems.map((item) => {
             const isActive = item.href === "/admin" 
               ? pathname === "/admin" 
