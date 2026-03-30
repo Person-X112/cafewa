@@ -1,5 +1,6 @@
 import Link from "next/link";
-
+//fsadafdsf
+console.log("hello")
 export default function AdminLayout({
   children,
 }: {
